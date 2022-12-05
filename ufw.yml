@@ -1,0 +1,29 @@
+---
+- name: "Firewall"
+  hosts: localhost
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  tasks:
+  - name: ufw enable
+    ufw:
+      state: enabled
+      policy: deny
+      
+  - name: Deny all access to port 53
+    ufw:
+      rule: deny
+      port: '53'
+  
+  - name: allow access to tcp port 22 from host 1.2.3.4
+    ufw:
+      rule: allow
+      proto: tcp
+      src: 1.2.3.4
+      port: '22'
+      
+  - name: allow openssh
+    ufw:
+      rule: allow
+      name: OpenSSH

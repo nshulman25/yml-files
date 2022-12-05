@@ -1,0 +1,13 @@
+---
+- name: "netplan edits"
+  hosts: localhost
+  become: yes
+  become_method: sudo
+  become_user: root
+  
+  tasks:
+  - name: configure netplan
+    lineinfile:
+      path: /etc/netplan/00-installer-config.yaml
+      regexp: '10.65.112.2'
+      line: '        - 192.168.1.34'

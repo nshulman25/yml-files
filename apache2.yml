@@ -1,0 +1,87 @@
+---
+- name: "Apache 2 setup"
+  hosts: localhost
+  become: yes
+  become_method: sudo
+  become_user: root
+  
+  tasks:
+  - name: install apache2
+    apt:
+      name: apache2
+      
+  - name: Create www.nvs0003.internal.conf
+    copy:
+      dest: "/etc/apache2/sites-available/www.nvs0003.internal.conf"
+      content: |
+       <Virtualhost *:80>
+         Servername www.nvs0003.internal
+         Serveralias nvs0003.internal
+         DocumentRoot /srv/www/www.nvs0003.internal
+         <Directory /srv/www/www.nvs0003.internal>
+           Order allow,deny
+           Allow from all
+           Require all granted
+         </Directory>
+       </Virtualhost>
+      
+  - name: Make /srv/www directroy
+    file:
+      path: /srv/www
+      state: directory
+      owner: www-data
+      group: www-data
+      
+  - name: Make /srv/www/www.nvs0003 directroy
+    file:
+      path: /srv/www/www.nvs0003.internal
+      state: directory
+      owner: www-data
+      group: www-data
+    
+  - name: Make index.html file
+    copy:
+      dest: /srv/www/www.nvs0003.internal/index.html
+      content: |
+        <h1> HI World </h1>
+      
+  - name: enable site
+    shell: a2ensite www.nvs0003.internal
+    
+        
+  - name: Edit apache2 global configs
+    blockinfile:
+      path: /etc/apache2/apache2.conf
+      block: |
+       <Directory /srv/>
+         Options Indexes FollowSymLinks
+         AllowOverride None
+         Require all granted
+       </Directory>
+       
+  - name: Edit /etc/hosts
+    lineinfile:
+      path: /etc/hosts
+      line: 127.0.0.1 www.nvs0003.internal
+      
+  - name: Install php
+    apt:
+      name: libapache2-mod-php
+  
+  - name: enable php
+    shell: a2enmod php7.4
+     
+  handlers: 
+  - name: reload dns
+    service: 
+      name: apache2 
+      state: reloaded
+      
+  - name: restart dns
+    service: 
+      name: apache2 
+      state: restarted 
+   
+
+      
+      

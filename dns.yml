@@ -1,0 +1,89 @@
+---
+- name: "DNS deployment"
+  hosts: localhost
+  become: yes
+  become_method: sudo
+  become_user: root
+
+  tasks:
+  - name: install bind9
+    apt:
+      name: bind9
+      
+  - name: Internal Zone
+    blockinfile:
+      path: /etc/bind/named.conf.default-zones
+      block: |
+       zone "nvs0003.internal" {
+         type master;
+         file "/etc/bind/db.internal";
+         };
+
+  - name: Create db.internal
+    copy:
+      src: /etc/bind/db.local
+      dest: /etc/bind/db.internal
+
+  - name: Edit db.internal
+    replace:
+      path: /etc/bind/db.internal
+      regexp: 'localhost.'
+      replace: 'nvs0003.internal.'
+      backup: yes
+      
+  - name: Edit db.internal part 2
+    replace:
+      path: /etc/bind/db.internal
+      after: 'NS'
+      before: '@'
+      regexp: 'nvs0003.internal.'
+      replace: 'machine2.nvs0003.internal.'
+      
+  - name: Edit db.internal part 2
+    replace:
+      path: /etc/bind/db.internal
+      regexp: '127.0.0.1'
+      replace: '192.168.1.34'
+      
+  - name: Edit db.internal part 3
+    lineinfile:
+      path: /etc/bind/db.internal
+      insertafter: '::1'
+      line: machine2  IN  A  192.168.1.34
+       
+  - name: Edit /etc/hosts
+    replace:
+      path: /etc/hosts
+      regexp: '127.0.0.1 localhost'
+      replace: '127.0.0.1 localhost machine2.nvs0003.internal'
+      backup: yes
+      
+  - name: Allow forwarding
+    replace:
+      path: /etc/bind/named.conf.options
+      regexp: '// forwarders {'
+      replace: 'forwarders {'
+    
+  - name: allow forwarding part 2
+    replace:
+      path: /etc/bind/named.conf.options
+      regexp: '// 	0.0.0.0;'
+      replace: '10.65.112.2;'
+    
+  - name: Allow forwarding part 3
+    replace:
+      path: /etc/bind/named.conf.options
+      regexp: '// };'
+      replace: '};'
+      
+  - name: Allow forwarding part 4
+    replace:
+      path: /etc/bind/named.conf.options
+      regexp: 'auto'
+      replace: 'no'
+      
+  - name: restart dns
+    service: 
+      name: named 
+      state: restarted 
+      
